@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	"time"
 )
 
 var DB *gorm.DB
@@ -20,7 +21,26 @@ func ConnectToDatabase() {
 	if err != nil {
 		log.Fatalf("failed to connect to database: %w", err)
 	}
-	log.Printf("Successfully connected to database: %s", os.Getenv("DB_NAME"))
+
+	// Настройка пула соединений
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Fatalf("failed to get database instance: %v", err)
+	}
+
+	// Устанавливаем максимальное количество открытых соединений в пуле
+	sqlDB.SetMaxOpenConns(10)
+
+	// Устанавливаем максимальное количество простаивающих соединений
+	sqlDB.SetMaxIdleConns(10)
+
+	// Устанавливаем максимальное время жизни соединения
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// Устанавливаем максимальное время простоя соединения
+	sqlDB.SetConnMaxIdleTime(time.Minute * 10)
+
+	log.Printf("Successfully connected to database: %s with connection pool (max connections: 10)", os.Getenv("DB_NAME"))
 }
 
 func MigrateModels() {
